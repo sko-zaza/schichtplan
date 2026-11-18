@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schichtplan Eisbahn</title>
+<meta name="theme-color" content="#0f4c81">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schichtplan">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f7fb; --card:#ffffff; --ink:#0f2233; --muted:#5d7287; --line:#dde6ef;
+  --ice:#1b7fc4; --ice-soft:#e3f1fb; --ok:#13815a; --ok-soft:#e2f5ec; --warn:#b4570c; --warn-soft:#fdf0e2;
+  --bad:#b42318; --bad-soft:#fdeceb; --me:#7a3fd1; --me-soft:#f1eafc;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0c1620; --card:#132230; --ink:#e7f0f8; --muted:#93a8bb; --line:#22384b;
+    --ice:#5bb3ef; --ice-soft:#16334a; --ok:#4fd19a; --ok-soft:#123528; --warn:#f2a65a; --warn-soft:#3a2914;
+    --bad:#ff8a80; --bad-soft:#3b1b1a; --me:#b892ff; --me-soft:#2a1f40; }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Manrope,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.4}
+header{background:linear-gradient(135deg,#0f4c81,#1b7fc4 60%,#59b6e6);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 16px 54px}
+main{padding-bottom:env(safe-area-inset-bottom)}
+header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.01em}
+header p{margin:4px 0 0;opacity:.85;font-size:13px}
+main{max-width:760px;margin:-40px auto 40px;padding:0 12px}
+.tabs{display:flex;gap:6px;background:var(--card);padding:5px;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);position:sticky;top:6px;z-index:5}
+.tabs button{flex:1;border:0;background:transparent;padding:10px 6px;border-radius:10px;font:inherit;font-weight:700;color:var(--muted);cursor:pointer}
+.tabs button.on{background:var(--ice);color:#fff}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-top:12px;box-shadow:0 1px 4px rgba(0,0,0,.05);border:1px solid var(--line)}
+.card h2{margin:0 0 10px;font-size:16px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.btn{border:0;border-radius:10px;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer;background:var(--ice);color:#fff}
+.btn.sec{background:var(--ice-soft);color:var(--ice)}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.btn.bad{background:var(--bad-soft);color:var(--bad)}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;width:100%}
+textarea{min-height:70px}
+label{display:block;font-weight:700;font-size:13px;margin:10px 0 4px}
+.row{display:flex;gap:8px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:var(--bg);border-radius:12px;padding:12px}
+.kpi b{display:block;font-size:21px;font-weight:800;letter-spacing:-.01em}
+.kpi span{font-size:12px;color:var(--muted)}
+.weeknav{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.weeknav strong{font-size:15px;text-align:center}
+.day{margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.day.today{border-color:var(--ice);box-shadow:0 0 0 2px var(--ice-soft)}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;padding:11px 14px;border-bottom:1px solid var(--line)}
+.dayhead b{font-size:15px}
+.closed{padding:10px 14px;color:var(--muted);font-size:13px}
+.shift{padding:12px 14px;border-top:1px solid var(--line)}
+.shift:first-of-type{border-top:0}
+.shift .top{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.shift .time{font-weight:800}
+.seats{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.seat{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--ok-soft);color:var(--ok)}
+.seat.free{background:transparent;border:1px dashed var(--line);color:var(--muted);font-weight:500}
+.seat.me{background:var(--me-soft);color:var(--me)}
+.seat.wait{background:var(--warn-soft);color:var(--warn)}
+.seat button{border:0;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer;padding:0 2px}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--ice-soft);color:var(--ice)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:700}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tablewrap{overflow-x:auto}
+.notice{padding:12px 14px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:13.5px;margin-top:12px}
+.notice.info{background:var(--ice-soft);color:var(--ice)}
+.notice.bad{background:var(--bad-soft);color:var(--bad)}
+.list li{margin:6px 0}
+.list{padding-left:18px;margin:6px 0}
+.modal{position:fixed;inset:0;background:rgba(5,15,25,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.modal .sheet{background:var(--card);width:100%;max-width:480px;border-radius:18px 18px 0 0;padding:18px}
+@media(min-width:600px){.modal{align-items:center}.modal .sheet{border-radius:18px}}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;z-index:30;max-width:90%}
+.hidden{display:none}
+.spin{padding:40px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>⛸️ Schichtplan Eisbahn</h1>
+  <p>Kunsteisbahn Bruchhausen-Vilsen · Saison 2026/27 · Koncak &amp; Co.</p>
+</header>
+<main>
+  <div class="tabs hidden" id="tabs">
+    <button data-tab="plan" class="on">Schichtplan</button>
+    <button data-tab="me">Mein Konto</button>
+    <button data-tab="boss" id="bossTab" class="hidden">Chef</button>
+  </div>
+  <div id="app"><div class="spin">Lade Schichtplan …</div></div>
+</main>
+<div id="modalRoot"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Verbindung zur Datenbank (Supabase) ---------- */
+const SUPABASE_URL = "https://ylbygvfzsdhakssgwsmq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_geCw3M9uwAlH2IZziIWdlQ_rFZqBEt6";
+
+/* ---------- Defaults (werden durch Einstellungen in der Datenbank ersetzt) ---------- */
+const DEF = {
+  seasonStart: "2026-11-27",
+  seasonEnd: "2027-02-28",
+  seats: 2,
+  seatsWeek: {"0":3,"1":2,"2":2,"3":2,"4":2,"5":2,"6":3},
+  pre: 0, post: 0,
+  week: {"1":"","2":"15:00-17:30","3":"15:00-17:30, 19:00-21:30","4":"15:00-17:30","5":"15:00-17:30","6":"10:30-12:30, 14:00-16:30","0":"10:30-12:30, 14:00-16:30"},
+  special: "",
+  wages: [{from:"2026-01-01", rate:13.90},{from:"2027-01-01", rate:14.60}],
+  minijob: [{from:"2026-01-01", limit:603},{from:"2027-01-01", limit:633}]
+};
+const WD = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+const WDL = ["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+const MON = ["Jan","Feb","März","Apr","Mai","Juni","Juli","Aug","Sep","Okt","Nov","Dez"];
+
+/* ---------- State ---------- */
+const S = {
+  token:null, uid:null, me:null, isOwner:false, loaded:false, offline:false, authMode:"login",
+  settings:null, staff:{}, signups:{}, adjust:{},
+  tab:"plan", weekStart:null, busy:false, stale:false
+};
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const mondayOf = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); const wd = (x.getDay()+6)%7; return addDays(x,-wd); };
+const eur = n => (Math.round(n*100)/100).toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+const hrs = n => (Math.round(n*100)/100).toLocaleString("de-DE",{maximumFractionDigits:2}) + " Std.";
+const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60 + (m||0); };
+const fromMin = m => `${pad(Math.floor(m/60))}:${pad(m%60)}`;
+const fmtDate = s => { const d = parseYmd(s); return `${WD[d.getDay()]}, ${d.getDate()}. ${MON[d.getMonth()]}`; };
+const monthKey = s => s.slice(0,7);
+const monthLabel = k => { const [y,m] = k.split("-").map(Number); return `${MON[m-1]} ${y}`; };
+
+function cfg(){ return Object.assign({}, DEF, S.settings || {}); }
+
+function normTime(t){
+  t = t.trim().replace(".",":");
+  if(/^\d{1,2}$/.test(t)) t += ":00";
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if(!m) return null;
+  const h = +m[1], mi = +m[2];
+  if(h>24 || mi>59) return null;
+  return `${pad(h)}:${pad(mi)}`;
+}
+function parseRanges(str){
+  if(!str) return [];
+  const out = [];
+  for(const part of String(str).split(/[,;]/)){
+    const p = part.trim(); if(!p) continue;
+    const m = p.split(/\s*[-–]\s*/);
+    if(m.length !== 2) continue;
+    const a = normTime(m[0]), b = normTime(m[1]);
+    if(a && b && toMin(b) > toMin(a)) out.push({from:a, to:b});
+  }
+  return out;
+}
+function parseSpecial(text){
+  const map = {};
+  for(const line of String(text||"").split(/\n/)){
+    const l = line.trim(); if(!l) continue;
+    const m = l.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(.*)$/) || l.match(/^(\d{4})-(\d{2})-(\d{2})\s+(.*)$/);
+    if(!m) continue;
+    let key;
+    if(l.includes(".")&&/^\d{1,2}\./.test(l)) key = `${m[3]}-${pad(m[2])}-${pad(m[1])}`;
+    else key = `${m[1]}-${m[2]}-${m[3]}`;
+    let rest = m[4].trim(), seats = null, add = false;
+    const sm = rest.match(/\((\d{1,2})\)\s*$/);
+    if(sm){ seats = +sm[1]; rest = rest.slice(0, sm.index).trim(); }
+    if(rest.startsWith("+")){ add = true; rest = rest.slice(1).trim(); }
+    const closed = /geschlossen|^zu\b|kein/i.test(rest);
+    map[key] = {ranges: closed ? [] : parseRanges(rest), add, seats, closed};
+  }
+  return map;
+}
+let _specCache = {src:null, map:{}};
+function specialMap(){
+  const c = cfg();
+  if(_specCache.src !== c.special){ _specCache = {src:c.special, map:parseSpecial(c.special)}; }
+  return _specCache.map;
+}
+/* Schichten eines Tages */
+function shiftsFor(date){
+  const c = cfg();
+  if(date < c.seasonStart || date > c.seasonEnd) return [];
+  const sp = specialMap();
+  const base = parseRanges((c.week||{})[String(parseYmd(date).getDay())]);
+  let ranges = base;
+  if(date in sp){ const s = sp[date]; ranges = s.closed ? [] : s.add ? [...base, ...s.ranges] : s.ranges; }
+  ranges = [...ranges].sort((x,y)=>toMin(x.from)-toMin(y.from));
+  const pre = +c.pre||0, post = +c.post||0;
+  return ranges.map((r,i) => {
+    let a = toMin(r.from), b = toMin(r.to);
+    if(i===0) a -= pre;
+    if(i===ranges.length-1) b += post;
+    a = Math.max(0,a);
+    return {idx:i, date, key:`${date}_${r.from.replace(":","")}`, from:fromMin(a), to:fromMin(Math.min(b,24*60)), hours:(Math.min(b,24*60)-a)/60};
+  });
+}
+function shiftByKey(key){
+  const date = key.split("_")[0];
+  return shiftsFor(date).find(s => s.key === key) || null;
+}
+function rateFor(date){
+  const list = [...(cfg().wages||DEF.wages)].sort((a,b)=>a.from<b.from?-1:1);
+  let r = list[0]?.rate || 0;
+  for(const w of list) if(w.from <= date) r = +w.rate;
+  return r;
+}
+function minijobFor(month){
+  const list = [...(cfg().minijob||DEF.minijob)].sort((a,b)=>a.from<b.from?-1:1);
+  let r = list[0]?.limit || 0;
+  for(const w of list) if(w.from.slice(0,7) <= month) r = +w.limit;
+  return r;
+}
+function isPast(shift){
+  const d = parseYmd(shift.date); const end = new Date(d.getTime() + toMin(shift.to)*60000);
+  return end < new Date();
+}
+function isStarted(shift){
+  const d = parseYmd(shift.date); const st = new Date(d.getTime() + toMin(shift.from)*60000);
+  return st < new Date();
+}
+function claims(key){
+  const out = [];
+  for(const [uid, doc] of Object.entries(S.signups)){
+    const ts = doc?.slots?.[key];
+    if(ts) out.push({uid, ts:+ts});
+  }
+  out.sort((a,b)=>a.ts-b.ts || (a.uid<b.uid?-1:1));
+  return out;
+}
+function seatsForDate(date){
+  const c = cfg(), sp = specialMap()[date];
+  if(sp && sp.seats) return sp.seats;
+  const w = (c.seatsWeek||{})[String(parseYmd(date).getDay())];
+  return Math.max(1, +(w || c.seats) || 1);
+}
+function seatsOf(key){
+  const c = claims(key), n = seatsForDate(key.split("_")[0]);
+  return {confirmed:c.slice(0,n), waiting:c.slice(n), n};
+}
+function nameOf(uid){ return S.staff[uid]?.name || "Unbekannt"; }
+function hoursFor(uid, shift){
+  const a = S.adjust[`${uid}|${shift.key}`];
+  return (typeof a === "number") ? a : shift.hours;
+}
+
+/* Statistik je Person */
+function statsFor(uid){
+  const slots = S.signups[uid]?.slots || {};
+  const st = {shifts:0, hours:0, planned:0, earned:0, earnedHours:0, futureHours:0, waiting:0, months:{}, list:[]};
+  for(const key of Object.keys(slots)){
+    const sh = shiftByKey(key); if(!sh) continue;
+    const {confirmed} = seatsOf(key);
+    if(!confirmed.some(c=>c.uid===uid)){ st.waiting++; st.list.push({sh, wait:true}); continue; }
+    const h = hoursFor(uid, sh), money = h*rateFor(sh.date);
+    st.shifts++; st.hours += h; st.planned += money;
+    const mk = monthKey(sh.date);
+    st.months[mk] = st.months[mk] || {hours:0, money:0, earned:0};
+    st.months[mk].hours += h; st.months[mk].money += money;
+    if(isPast(sh)){ st.earned += money; st.earnedHours += h; st.months[mk].earned += money; }
+    else st.futureHours += h;
+    st.list.push({sh, wait:false, h, money});
+  }
+  st.list.sort((a,b)=>a.sh.key<b.sh.key?-1:1);
+  return st;
+}
+
+/* ---------- UI helpers ---------- */
+function toast(msg){
+  const t = document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(), 2600);
+}
+function modal(html, onMount){
+  const root = $("#modalRoot");
+  root.innerHTML = `<div class="modal"><div class="sheet">${html}</div></div>`;
+  const close = () => root.innerHTML = "";
+  root.querySelector(".modal").addEventListener("click", e => { if(e.target.classList.contains("modal")) close(); });
+  onMount && onMount(root.querySelector(".sheet"), close);
+}
+function confirmBox(text, okLabel, fn){
+  modal(`<p style="margin-top:0">${esc(text)}</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-x>Abbrechen</button><button class="btn" data-ok>${esc(okLabel)}</button></div>`,
+    (el, close) => { el.querySelector("[data-x]").onclick = close; el.querySelector("[data-ok]").onclick = () => { close(); fn(); }; });
+}
+
+/* ---------- Server ---------- */
+const ERR = {
+  NICHT_ANGEMELDET:"Bitte neu anmelden.", NAME_UNGUELTIG:"Bitte gib deinen Namen ein (2–40 Zeichen).",
+  PIN_UNGUELTIG:"Die PIN muss aus 4 bis 8 Ziffern bestehen.", NAME_VERGEBEN:"Diesen Namen gibt es schon. Bitte Nachnamen dazuschreiben.",
+  FALSCH:"Name oder PIN falsch.", GESPERRT:"Zu viele Fehlversuche. Bitte 15 Minuten warten.",
+  SCHICHT_BEGONNEN:"Diese Schicht hat schon angefangen.", NICHT_ERLAUBT:"Das darf nur die Chefin.",
+  SCHICHT_UNGUELTIG:"Unbekannte Schicht.", STUNDEN_UNGUELTIG:"Ungültige Stundenzahl."
+};
+class ApiError extends Error { constructor(code){ super(ERR[code] || "Etwas ist schiefgelaufen. Bitte nochmal versuchen."); this.code = code; } }
+async function api(fn, args){
+  let res;
+  try{
+    res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+      method:"POST",
+      headers: Object.assign({ "Content-Type":"application/json", apikey:SUPABASE_KEY }, SUPABASE_KEY.startsWith("sb_") ? {} : { Authorization:`Bearer ${SUPABASE_KEY}` }),
+      body: JSON.stringify(args || {})
+    });
+  }catch(e){ throw new ApiError("OFFLINE"); }
+  const text = await res.text();
+  let body = null; try{ body = text ? JSON.parse(text) : null; }catch(e){}
+  if(!res.ok){
+    const msg = (body && (body.message || body.hint)) || "";
+    const code = Object.keys(ERR).find(k => msg.includes(k)) || "UNBEKANNT";
+    if(code === "NICHT_ANGEMELDET") logoutLocal();
+    throw new ApiError(code);
+  }
+  if(body && body.error) throw new ApiError(body.error);
+  return body;
+}
+const store = {
+  get(){ try{ return localStorage.getItem("sp_token"); }catch(e){ return null; } },
+  set(t){ try{ localStorage.setItem("sp_token", t); }catch(e){} },
+  clear(){ try{ localStorage.removeItem("sp_token"); }catch(e){} }
+};
+function logoutLocal(){ store.clear(); S.token = null; S.loaded = false; S.me = null; S.uid = null; S.isOwner = false; S.tab = "plan"; }
+
+async function refresh(){
+  if(!S.token) return;
+  try{
+    const st = await api("sp_state", {p_token:S.token});
+    S.me = st.me; S.uid = st.me.id; S.isOwner = !!st.me.is_boss;
+    S.settings = st.settings || null; _specCache.src = null;
+    const staff = {}; for(const p of st.staff) staff[p.id] = p; S.staff = staff;
+    const su = {}; for(const x of st.signups){ (su[x.s] = su[x.s] || {slots:{}}).slots[x.k] = x.t; } S.signups = su;
+    const ad = {}; for(const x of st.adjust) ad[`${x.s}|${x.k}`] = +x.h; S.adjust = ad;
+    S.loaded = true; S.offline = false;
+  }catch(e){
+    if(e.code === "OFFLINE") S.offline = true;
+    else if(e.code !== "NICHT_ANGEMELDET") toast(e.message);
+  }
+  if(!document.querySelector("#modalRoot .modal")) render();
+}
+async function act(fn, args, okMsg){
+  if(S.busy) return false;
+  S.busy = true; render();
+  let ok = false;
+  try{ await api(fn, Object.assign({p_token:S.token}, args)); if(okMsg) toast(okMsg); ok = true; }
+  catch(e){ toast(e.code==="OFFLINE" ? "Keine Internetverbindung." : e.message); }
+  S.busy = false; await refresh();
+  return ok;
+}
+async function claim(key){
+  const sh = shiftByKey(key); if(!sh || isStarted(sh)) return;
+  if(S.signups[S.uid]?.slots?.[key]) return;
+  if(await act("sp_claim", {p_key:key})){
+    const {confirmed} = seatsOf(key);
+    toast(confirmed.some(c=>c.uid===S.uid) ? "Eingetragen ✓" : "Auf der Warteliste – du rückst nach, wenn jemand frei macht.");
+  }
+}
+async function release(uid, key){
+  await act("sp_release", {p_key:key, p_staff:uid}, uid===S.uid ? "Schicht freigegeben" : `${nameOf(uid)} ausgetragen`);
+}
+async function saveAdjust(uid, key, val){
+  await act("sp_set_adjust", {p_key:key, p_staff:uid, p_hours:val}, "Stunden gespeichert");
+}
+
+/* ---------- Render ---------- */
+function render(){
+  const app = $("#app");
+  if(!S.token){ $("#tabs").classList.add("hidden"); app.innerHTML = renderAuth(); bindAuth(); return; }
+  if(!S.loaded){ app.innerHTML = `<div class="card spin">${S.offline ? "Keine Verbindung. Bitte Internet prüfen – es wird automatisch neu versucht." : "Lade Schichtplan …"}</div>`; return; }
+  $("#tabs").classList.remove("hidden");
+  $("#bossTab").classList.toggle("hidden", !S.isOwner);
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.tab));
+  let html = "";
+  if(S.offline) html += `<div class="notice">Keine Internetverbindung – Anzeige ist evtl. nicht aktuell.</div>`;
+  if(S.tab === "plan") html += renderPlan();
+  else if(S.tab === "me") html += renderMe();
+  else if(S.tab === "boss" && S.isOwner) html += renderBoss();
+  app.innerHTML = html;
+  bind();
+}
+
+function renderAuth(){
+  const reg = S.authMode === "register";
+  return `<div class="card">
+    <div class="tabs" style="position:static;box-shadow:none;background:var(--bg);margin-bottom:6px">
+      <button type="button" data-mode="login" class="${reg?"":"on"}">Anmelden</button><button type="button" data-mode="register" class="${reg?"on":""}">Neues Konto</button></div>
+    <form id="authForm" autocomplete="on">
+      <label for="aName">Vor- und Nachname</label><input id="aName" autocomplete="username" maxlength="40" placeholder="z. B. Jaron Müller" required>
+      <label for="aPin">${reg?"PIN wählen (4–8 Ziffern)":"PIN"}</label><input id="aPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="${reg?"new-password":"current-password"}" required>
+      ${reg?`<label for="aPin2">PIN wiederholen</label><input id="aPin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="new-password" required>
+      <label for="aPhone">Handynummer (optional, sieht nur die Chefin)</label><input id="aPhone" inputmode="tel" maxlength="30" placeholder="0170 …">`:""}
+      <div style="margin-top:14px"><button class="btn" type="submit" id="aBtn" style="width:100%">${reg?"Konto anlegen":"Anmelden"}</button></div>
+    </form>
+    <p class="muted small" style="margin-bottom:0">${reg?"Merk dir deine PIN gut. Wenn du sie vergisst, kann Sarah sie zurücksetzen.":"Noch kein Konto? Tippe oben auf „Neues Konto“."}</p>
+  </div>
+  <div class="card small muted">📲 <b>Als App aufs Handy:</b> iPhone: in Safari auf „Teilen“ → „Zum Home-Bildschirm“. Android: in Chrome Menü ⋮ → „App installieren“ bzw. „Zum Startbildschirm“.</div>`;
+}
+function bindAuth(){
+  document.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { S.authMode = b.dataset.mode; render(); });
+  const f = $("#authForm");
+  f.onsubmit = async e => {
+    e.preventDefault();
+    const reg = S.authMode === "register";
+    const name = $("#aName").value.trim(), pin = $("#aPin").value.trim();
+    if(reg && pin !== $("#aPin2").value.trim()){ toast("Die PINs stimmen nicht überein."); return; }
+    const btn = $("#aBtn"); btn.disabled = true;
+    try{
+      const r = reg ? await api("sp_register", {p_name:name, p_pin:pin, p_phone:$("#aPhone").value.trim()})
+                    : await api("sp_login", {p_name:name, p_pin:pin});
+      S.token = r.token; store.set(r.token); S.tab = "plan";
+      render(); await refresh();
+      if(reg) toast(S.isOwner ? "Chef-Konto angelegt ✓" : "Konto angelegt ✓");
+    }catch(err){ btn.disabled = false; toast(err.code==="OFFLINE" ? "Keine Internetverbindung." : err.message); }
+  };
+}
+
+function renderPlan(){
+  const c = cfg();
+  if(!S.weekStart){
+    const today = new Date(); const start = parseYmd(c.seasonStart);
+    S.weekStart = mondayOf(today < start ? start : today);
+  }
+  const ws = S.weekStart, we = addDays(ws,6);
+  const todayStr = ymd(new Date());
+  let h = `<div class="card"><div class="weeknav">
+    <button class="btn sec sm" data-week="-1">‹ Woche</button>
+    <strong>${ws.getDate()}. ${MON[ws.getMonth()]} – ${we.getDate()}. ${MON[we.getMonth()]} ${we.getFullYear()}</strong>
+    <button class="btn sec sm" data-week="1">Woche ›</button></div>
+    <div class="row" style="justify-content:center;margin-top:8px"><button class="btn ghost sm" data-week="0">Heute</button>
+    <span class="muted small">Stundenlohn: ${eur(rateFor(ymd(ws)))}${rateFor(ymd(ws))!==rateFor(ymd(we))?` / ab 1.1.: ${eur(rateFor(ymd(we)))}`:""}</span></div></div>`;
+  for(let i=0;i<7;i++){
+    const d = addDays(ws,i), ds = ymd(d), shifts = shiftsFor(ds);
+    h += `<div class="day ${ds===todayStr?"today":""}"><div class="dayhead"><b>${WDL[d.getDay()]}, ${d.getDate()}. ${MON[d.getMonth()]}</b>${ds===todayStr?'<span class="pill">Heute</span>':""}</div>`;
+    if(!shifts.length){
+      const out = ds < c.seasonStart || ds > c.seasonEnd;
+      h += `<div class="closed">${out ? "Außerhalb der Saison" : "Geschlossen"}</div>`;
+    }
+    for(const sh of shifts){
+      const {confirmed, waiting, n} = seatsOf(sh.key);
+      const mineIdx = confirmed.findIndex(x=>x.uid===S.uid), mineWait = waiting.some(x=>x.uid===S.uid);
+      const started = isStarted(sh), past = isPast(sh);
+      const pay = sh.hours*rateFor(ds);
+      let btn = "";
+      if(!started){
+        if(mineIdx>=0 || mineWait) btn = `<button class="btn bad sm" data-release="${sh.key}" ${S.busy?"disabled":""}>Austragen</button>`;
+        else if(confirmed.length < n) btn = `<button class="btn sm" data-claim="${sh.key}" ${S.busy?"disabled":""}>Eintragen</button>`;
+        else btn = `<button class="btn sec sm" data-claim="${sh.key}" ${S.busy?"disabled":""}>Warteliste</button>`;
+      } else if(past) btn = `<span class="pill ok">Erledigt</span>`;
+      else if(started) btn = `<span class="pill">Läuft</span>`;
+      let seats = "";
+      confirmed.forEach(x => {
+        const me = x.uid===S.uid;
+        const adj = S.adjust[`${x.uid}|${sh.key}`];
+        const adjTxt = typeof adj==="number" ? ` · ${hrs(adj)}` : "";
+        let ctl = "";
+        if(S.isOwner && !me) ctl += `<button title="Austragen" data-release-other="${x.uid}|${sh.key}">×</button>`;
+        if(S.isOwner && started) ctl += `<button title="Stunden anpassen" data-adjust="${x.uid}|${sh.key}">✎</button>`;
+        seats += `<span class="seat ${me?"me":""}">${me?"Du":esc(nameOf(x.uid))}${adjTxt}${ctl}</span>`;
+      });
+      for(let k=confirmed.length;k<n;k++) seats += `<span class="seat free">frei</span>`;
+      waiting.forEach((x,wi) => {
+        const me = x.uid===S.uid;
+        seats += `<span class="seat wait">⏳ ${wi+1}. ${me?"Du":esc(nameOf(x.uid))}${S.isOwner&&!me?`<button data-release-other="${x.uid}|${sh.key}">×</button>`:""}</span>`;
+      });
+      h += `<div class="shift"><div class="top"><div><span class="time">${sh.from} – ${sh.to}</span> <span class="muted small">· ${hrs(sh.hours)} · ${eur(pay)}</span></div>${btn}</div><div class="seats">${seats}</div></div>`;
+    }
+    h += `</div>`;
+  }
+  h += `<p class="muted small" style="text-align:center;margin-top:14px">Eingetragene Schichten kann nur die Person selbst wieder freigeben (oder die Chefin). Ist eine Schicht voll, kommst du auf die Warteliste und rückst automatisch nach.</p>`;
+  return h;
+}
+
+function renderMe(){
+  const me = S.me;
+  const st = statsFor(S.uid);
+  const thisMon = mondayOf(new Date()), nextMon = addDays(thisMon,7);
+  const weekCount = st.list.filter(x=>!x.wait && x.sh.date>=ymd(thisMon) && x.sh.date<ymd(nextMon)).length;
+  let h = `<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Hallo ${esc(me.name)} 👋</h2><button class="btn ghost sm" id="editName">Konto</button></div>
+    <div class="kpis" style="margin-top:12px">
+      <div class="kpi"><b>${hrs(st.hours)}</b><span>eingetragen (${st.shifts} Schichten)</span></div>
+      <div class="kpi"><b>${eur(st.planned)}</b><span>voraussichtlicher Verdienst</span></div>
+      <div class="kpi"><b>${eur(st.earned)}</b><span>bereits verdient (${hrs(st.earnedHours)})</span></div>
+      <div class="kpi"><b>${weekCount}×</b><span>diese Woche eingetragen</span></div>
+    </div>
+    <p class="muted small" style="margin-bottom:0">Bis 31.12.2026: ${eur(rateFor("2026-12-31"))}/Std. · ab 1.1.2027: ${eur(rateFor("2027-01-01"))}/Std. (Mindestlohn). Alle Beträge brutto.</p></div>`;
+  const months = Object.keys(st.months).sort();
+  if(months.length){
+    h += `<div class="card"><h2>Pro Monat</h2><div class="tablewrap"><table><tr><th>Monat</th><th class="num">Std.</th><th class="num">Voraussichtl.</th><th class="num">Verdient</th></tr>`;
+    for(const m of months){
+      const x = st.months[m], lim = minijobFor(m), over = x.money > lim;
+      h += `<tr><td>${monthLabel(m)} ${over?`<span class="pill warn" title="Minijob-Grenze ${eur(lim)}">über ${eur(lim)}</span>`:""}</td><td class="num">${hrs(x.hours)}</td><td class="num">${eur(x.money)}</td><td class="num">${eur(x.earned)}</td></tr>`;
+    }
+    h += `</table></div><p class="muted small">Minijob-Grenze: ${eur(minijobFor("2026-12"))}/Monat (2026), ${eur(minijobFor("2027-01"))}/Monat (ab 2027).</p></div>`;
+  }
+  const upcoming = st.list.filter(x=>!isStarted(x.sh));
+  const done = st.list.filter(x=>isStarted(x.sh) && !x.wait);
+  h += `<div class="card"><h2>Meine kommenden Schichten</h2>`;
+  if(!upcoming.length) h += `<p class="muted">Noch keine. Trag dich im Schichtplan ein.</p>`;
+  else{
+    h += `<div class="tablewrap"><table>`;
+    for(const x of upcoming){
+      h += `<tr><td><b>${fmtDate(x.sh.date)}</b><br><span class="muted small">${x.sh.from} – ${x.sh.to}</span> ${x.wait?'<span class="pill warn">Warteliste</span>':""}</td><td class="num">${x.wait?"–":eur(x.money)}</td><td class="num"><button class="btn bad sm" data-release="${x.sh.key}" ${S.busy?"disabled":""}>Freigeben</button></td></tr>`;
+    }
+    h += `</table></div>`;
+  }
+  h += `</div>`;
+  if(done.length){
+    h += `<div class="card"><h2>Gearbeitet</h2><div class="tablewrap"><table>`;
+    for(const x of [...done].reverse()) h += `<tr><td>${fmtDate(x.sh.date)} <span class="muted small">${x.sh.from}–${x.sh.to}</span></td><td class="num">${hrs(x.h)}</td><td class="num">${eur(x.money)}</td></tr>`;
+    h += `</table></div></div>`;
+  }
+  return h;
+}
+
+function renderBoss(){
+  const c = cfg();
+  const uids = new Set([...Object.keys(S.staff), ...Object.keys(S.signups)]);
+  const rows = [...uids].map(u => ({uid:u, name:nameOf(u), st:statsFor(u)})).sort((a,b)=>b.st.hours-a.st.hours);
+  let tHours=0, tPlan=0, tEarn=0; const months = {};
+  rows.forEach(r => { tHours+=r.st.hours; tPlan+=r.st.planned; tEarn+=r.st.earned;
+    for(const [m,x] of Object.entries(r.st.months)){ months[m]=months[m]||{hours:0,money:0,earned:0}; months[m].hours+=x.hours; months[m].money+=x.money; months[m].earned+=x.earned; } });
+  // offene Plätze
+  let openSeats = 0, openList = [];
+  const today = ymd(new Date());
+  for(let d = parseYmd(today > c.seasonStart ? today : c.seasonStart); ymd(d) <= c.seasonEnd; d = addDays(d,1)){
+    for(const sh of shiftsFor(ymd(d))){
+      if(isStarted(sh)) continue;
+      const {confirmed, n} = seatsOf(sh.key);
+      if(confirmed.length < n){ openSeats += n-confirmed.length; if(openList.length<12) openList.push({sh, free:n-confirmed.length}); }
+    }
+  }
+  let h = `<div class="card"><h2>Übersicht Saison</h2><div class="kpis">
+    <div class="kpi"><b>${Object.keys(S.staff).length}</b><span>Mitarbeiter mit Konto</span></div>
+    <div class="kpi"><b>${hrs(tHours)}</b><span>eingetragene Stunden</span></div>
+    <div class="kpi"><b>${eur(tPlan)}</b><span>voraussichtl. Lohnkosten</span></div>
+    <div class="kpi"><b>${eur(tEarn)}</b><span>bereits angefallen</span></div>
+    <div class="kpi"><b>${eur(tPlan-tEarn)}</b><span>noch offen (geplant)</span></div>
+    <div class="kpi"><b>${openSeats}</b><span>unbesetzte Plätze (Zukunft)</span></div>
+  </div><p class="muted small" style="margin-bottom:0">Brutto-Stundenlöhne ohne Arbeitgeber-Pauschalabgaben für Minijobs.</p></div>`;
+
+  h += `<div class="card"><h2>Pro Mitarbeiter</h2><div class="tablewrap"><table><tr><th>Name</th><th class="num">Schichten</th><th class="num">Std.</th><th class="num">Voraussichtl.</th><th class="num">Verdient</th></tr>`;
+  if(!rows.length) h += `<tr><td colspan="5" class="muted">Noch niemand angemeldet. Schick den Link in die WhatsApp-Gruppe.</td></tr>`;
+  for(const r of rows){
+    const overM = Object.entries(r.st.months).filter(([m,x]) => x.money > minijobFor(m)).map(([m])=>monthLabel(m));
+    const phone = S.staff[r.uid]?.phone;
+    h += `<tr><td><b>${esc(r.name)}</b>${r.uid===S.uid?' <span class="pill">Du</span>':""}${phone?`<br><span class="muted small">${esc(phone)}</span>`:""}${r.st.waiting?`<br><span class="pill warn">${r.st.waiting}× Warteliste</span>`:""}${overM.length?`<br><span class="pill bad">Minijob-Grenze überschritten: ${esc(overM.join(", "))}</span>`:""}
+      ${r.uid!==S.uid && S.staff[r.uid]?`<br><button class="btn ghost sm" style="margin-top:6px" data-resetpin="${r.uid}">PIN neu</button> <button class="btn bad sm" style="margin-top:6px" data-delstaff="${r.uid}">Löschen</button>`:""}</td>
+      <td class="num">${r.st.shifts}</td><td class="num">${hrs(r.st.hours)}</td><td class="num">${eur(r.st.planned)}</td><td class="num">${eur(r.st.earned)}</td></tr>`;
+  }
+  h += `</table></div><div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn sec sm" id="copyCsv">Abrechnung kopieren (CSV)</button><span class="muted small">Alle bestätigten Schichten für die Lohnabrechnung</span></div></div>`;
+
+  const mk = Object.keys(months).sort();
+  h += `<div class="card"><h2>Lohnkosten pro Monat</h2><div class="tablewrap"><table><tr><th>Monat</th><th class="num">Std.</th><th class="num">Voraussichtl.</th><th class="num">Angefallen</th></tr>`;
+  if(!mk.length) h += `<tr><td colspan="4" class="muted">Noch keine Einträge.</td></tr>`;
+  for(const m of mk) h += `<tr><td>${monthLabel(m)}</td><td class="num">${hrs(months[m].hours)}</td><td class="num">${eur(months[m].money)}</td><td class="num">${eur(months[m].earned)}</td></tr>`;
+  h += `</table></div></div>`;
+
+  h += `<div class="card"><h2>Nächste unbesetzte Schichten</h2>`;
+  if(!openList.length) h += `<p class="muted">Alles besetzt 🎉</p>`;
+  else h += `<ul class="list">${openList.map(o=>`<li><b>${fmtDate(o.sh.date)}</b> ${o.sh.from}–${o.sh.to} <span class="pill warn">${o.free} frei</span></li>`).join("")}</ul>`;
+  h += `</div>`;
+
+  const wk = c.week || {};
+  const wdOrder = [1,2,3,4,5,6,0];
+  h += `<div class="card"><h2>Einstellungen</h2>
+    <p class="muted small" style="margin-top:0">Öffnungszeiten je Wochentag. Mehrere Schichten mit Komma trennen (z. B. <i>10:00-15:00, 15:00-20:00</i>). Leer = geschlossen. Rechts: wie viele Leute pro Schicht.</p>
+    ${wdOrder.map(d=>`<label for="wk${d}">${WDL[d]}</label><div class="row"><input id="wk${d}" value="${esc(wk[String(d)]||"")}" placeholder="geschlossen" style="flex:1"><input id="ws${d}" type="number" min="1" max="20" value="${esc((c.seatsWeek||{})[String(d)]||c.seats||2)}" style="width:64px" aria-label="Personen ${WDL[d]}"><span class="muted small">Pers.</span></div>`).join("")}
+    <label for="spec">Sondertage (eine Zeile pro Tag)</label>
+    <p class="muted small" style="margin:0 0 6px">Ersetzt die normalen Zeiten. Mit <b>+</b> werden Zeiten zusätzlich angehängt (z. B. Ferien), mit <b>(3)</b> am Ende gilt eine andere Personenzahl.</p>
+    <textarea id="spec" placeholder="24.12.2026 geschlossen&#10;31.12.2026 10:00-16:00">${esc(c.special||"")}</textarea>
+    <div class="grid2">
+      <div><label for="sS">Saisonstart</label><input type="date" id="sS" value="${esc(c.seasonStart)}"></div>
+      <div><label for="sE">Saisonende</label><input type="date" id="sE" value="${esc(c.seasonEnd)}"></div>
+      <div><label for="pre">Minuten vor Öffnung (bezahlt)</label><input type="number" min="0" max="180" step="5" id="pre" value="${esc(c.pre||0)}"></div>
+      <div><label for="post">Minuten nach Schluss (bezahlt)</label><input type="number" min="0" max="180" step="5" id="post" value="${esc(c.post||0)}"></div>
+      <div><label for="w1">Lohn 2026 (€/Std.)</label><input type="number" step="0.01" id="w1" value="${esc(rateFor("2026-12-31"))}"></div>
+      <div><label for="w2">Lohn ab 1.1.2027 (€/Std.)</label><input type="number" step="0.01" id="w2" value="${esc(rateFor("2027-01-01"))}"></div>
+    </div>
+    <div style="margin-top:14px"><button class="btn" id="saveCfg">Einstellungen speichern</button></div>
+    <p class="muted small">Tipp: Im Schichtplan kannst du bei vergangenen Schichten mit ✎ die tatsächlich gearbeiteten Stunden ändern (0 = nicht erschienen) und mit × jemanden austragen.</p></div>`;
+  return h;
+}
+
+/* ---------- Events ---------- */
+function bind(){
+  document.querySelectorAll("[data-goto]").forEach(a => a.onclick = e => { e.preventDefault(); S.tab=a.dataset.goto; render(); });
+  document.querySelectorAll("[data-week]").forEach(b => b.onclick = () => {
+    const v = +b.dataset.week;
+    if(v===0){ const c=cfg(), t=new Date(), s=parseYmd(c.seasonStart); S.weekStart = mondayOf(t<s?s:t); }
+    else S.weekStart = addDays(S.weekStart, 7*v);
+    render(); window.scrollTo({top:0});
+  });
+  document.querySelectorAll("[data-claim]").forEach(b => b.onclick = () => claim(b.dataset.claim));
+  document.querySelectorAll("[data-release]").forEach(b => b.onclick = () => {
+    const sh = shiftByKey(b.dataset.release);
+    confirmBox(`Schicht ${sh?fmtDate(sh.date)+" "+sh.from+"–"+sh.to:""} wirklich freigeben?`, "Freigeben", () => release(S.uid, b.dataset.release));
+  });
+  document.querySelectorAll("[data-release-other]").forEach(b => b.onclick = () => {
+    const [uid, key] = b.dataset.releaseOther.split("|");
+    confirmBox(`${nameOf(uid)} aus dieser Schicht austragen?`, "Austragen", () => release(uid, key));
+  });
+  document.querySelectorAll("[data-adjust]").forEach(b => b.onclick = () => {
+    const [uid, key] = b.dataset.adjust.split("|"); const sh = shiftByKey(key);
+    const cur = hoursFor(uid, sh);
+    modal(`<h2 style="margin-top:0">Stunden ${esc(nameOf(uid))}</h2><p class="muted small">${fmtDate(sh.date)} · geplant ${hrs(sh.hours)}</p>
+      <label for="adjH">Tatsächlich gearbeitet (Std., 0 = nicht erschienen)</label><input id="adjH" type="number" step="0.25" min="0" max="24" value="${cur}">
+      <div class="row" style="justify-content:space-between;margin-top:14px"><button class="btn ghost" data-reset>Auf geplant zurück</button><button class="btn" data-ok>Speichern</button></div>`,
+      (el, close) => {
+        el.querySelector("[data-reset]").onclick = () => { close(); saveAdjust(uid, key, null); };
+        el.querySelector("[data-ok]").onclick = () => { const v = parseFloat(String(el.querySelector("#adjH").value).replace(",",".")); if(isNaN(v)||v<0||v>24){toast("Ungültige Zahl");return;} close(); saveAdjust(uid, key, Math.round(v*100)/100); };
+      });
+  });
+  const en = $("#editName");
+  if(en) en.onclick = () => {
+    const me = S.me;
+    modal(`<h2 style="margin-top:0">Mein Konto</h2>
+      <label for="nm2">Name</label><input id="nm2" maxlength="40" value="${esc(me.name)}">
+      <label for="ph2">Handynummer (optional, sieht nur die Chefin)</label><input id="ph2" maxlength="30" inputmode="tel" value="${esc(me.phone||"")}">
+      <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" data-ok>Speichern</button></div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+      <label for="op">PIN ändern – alte PIN</label><input id="op" type="password" inputmode="numeric" maxlength="8">
+      <label for="np">Neue PIN (4–8 Ziffern)</label><input id="np" type="password" inputmode="numeric" maxlength="8">
+      <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn bad" data-out>Abmelden</button><button class="btn sec" data-pin>PIN ändern</button></div>
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost sm" data-x>Schließen</button></div>`,
+      (el, close) => {
+        el.querySelector("[data-x]").onclick = close;
+        el.querySelector("[data-ok]").onclick = async () => { const n = el.querySelector("#nm2").value, p = el.querySelector("#ph2").value; close(); await act("sp_update_profile", {p_name:n, p_phone:p}, "Gespeichert"); };
+        el.querySelector("[data-pin]").onclick = async () => { const o = el.querySelector("#op").value, n = el.querySelector("#np").value; close(); await act("sp_change_pin", {p_old:o, p_new:n}, "PIN geändert ✓"); };
+        el.querySelector("[data-out]").onclick = async () => { close(); try{ await api("sp_logout", {p_token:S.token}); }catch(e){} logoutLocal(); render(); };
+      });
+  };
+  document.querySelectorAll("[data-resetpin]").forEach(b => b.onclick = () => {
+    const uid = b.dataset.resetpin;
+    modal(`<h2 style="margin-top:0">Neue PIN für ${esc(nameOf(uid))}</h2><p class="muted small">Gib die neue PIN danach an ${esc(nameOf(uid))} weiter.</p>
+      <label for="rp">Neue PIN (4–8 Ziffern)</label><input id="rp" inputmode="numeric" maxlength="8">
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-x>Abbrechen</button><button class="btn" data-ok>Speichern</button></div>`,
+      (el, close) => { el.querySelector("[data-x]").onclick = close; el.querySelector("[data-ok]").onclick = async () => { const v = el.querySelector("#rp").value.trim(); close(); await act("sp_reset_pin", {p_staff:uid, p_new:v}, "PIN zurückgesetzt ✓"); }; });
+  });
+  document.querySelectorAll("[data-delstaff]").forEach(b => b.onclick = () => {
+    const uid = b.dataset.delstaff;
+    confirmBox(`${nameOf(uid)} mit allen Schichten löschen? Das kann nicht rückgängig gemacht werden.`, "Löschen", () => act("sp_delete_staff", {p_staff:uid}, "Gelöscht"));
+  });
+  const sc = $("#saveCfg");
+  if(sc) sc.onclick = async () => {
+    const week = {}; for(const d of [0,1,2,3,4,5,6]) week[String(d)] = $("#wk"+d).value.trim();
+    const bad = Object.entries(week).filter(([d,v]) => v && !parseRanges(v).length);
+    if(bad.length){ toast(`Zeit bei ${bad.map(([d])=>WDL[d]).join(", ")} nicht lesbar`); return; }
+    const w1 = parseFloat(String($("#w1").value).replace(",",".")), w2 = parseFloat(String($("#w2").value).replace(",","."));
+    const sS = $("#sS").value, sE = $("#sE").value;
+    if(!sS || !sE || sE < sS){ toast("Saisondaten prüfen"); return; }
+    if(!(w1>0) || !(w2>0)){ toast("Lohn prüfen"); return; }
+    const seatsWeek = {}; for(const d of [0,1,2,3,4,5,6]) seatsWeek[String(d)] = Math.max(1, parseInt($("#ws"+d).value)||1);
+    const data = { seasonStart:sS, seasonEnd:sE, seats:2, seatsWeek,
+      pre:Math.max(0, parseInt($("#pre").value)||0), post:Math.max(0, parseInt($("#post").value)||0),
+      week, special:$("#spec").value, wages:[{from:"2026-01-01",rate:w1},{from:"2027-01-01",rate:w2}], minijob:cfg().minijob, updatedAt:Date.now() };
+    delete data.updatedAt;
+    await act("sp_save_settings", {p_settings:data}, "Einstellungen gespeichert ✓");
+  };
+  const cc = $("#copyCsv");
+  if(cc) cc.onclick = async () => {
+    const lines = ["Name;Datum;Von;Bis;Stunden;Stundenlohn;Betrag;Status"];
+    for(const uid of Object.keys(S.signups)){
+      for(const x of statsFor(uid).list){ if(x.wait) continue;
+        lines.push([nameOf(uid), x.sh.date, x.sh.from, x.sh.to, String(x.h).replace(".",","), String(rateFor(x.sh.date)).replace(".",","), (Math.round(x.money*100)/100).toFixed(2).replace(".",","), isPast(x.sh)?"gearbeitet":"geplant"].join(";")); }
+    }
+    try{ await navigator.clipboard.writeText(lines.join("\n")); toast("Kopiert – in Excel/Numbers einfügen"); }
+    catch(e){ modal(`<h2 style="margin-top:0">Abrechnung</h2><textarea style="min-height:240px">${esc(lines.join("\n"))}</textarea><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" data-x>Schließen</button></div>`, (el,close)=>el.querySelector("[data-x]").onclick=close); }
+  };
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { S.tab = b.dataset.tab; render(); window.scrollTo({top:0}); });
+
+/* ---------- Start ---------- */
+async function start(){
+  S.token = store.get();
+  render();
+  if(S.token) await refresh();
+  setInterval(() => { if(S.token && document.visibilityState === "visible" && !S.busy) refresh(); }, 20000);
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && S.token) refresh(); });
+}
+start();
+})();
+</script>
+</body>
+</html>
